@@ -71,11 +71,14 @@ namespace EmojiText.Taurus
 						else
 						{
 							MeshInfo meshInfo = Pool<MeshInfo>.Get();
-							meshInfo.Clear();
+							meshInfo.Reset();
 							foreach (var item in textMeshInfo)
 							{
-								meshInfo.Vertices.AddRange(item.Value.Vertices);
-								meshInfo.UVs.AddRange(item.Value.UVs);
+								if (item.Value.visable)
+								{
+                                    meshInfo.Vertices.AddRange(item.Value.Vertices);
+                                    meshInfo.UVs.AddRange(item.Value.UVs);
+								}
 							}
 							if (spriteGraphic.MeshInfo != null)
 								Pool<MeshInfo>.Release(spriteGraphic.MeshInfo);
@@ -90,7 +93,7 @@ namespace EmojiText.Taurus
 		}
 
 		//更新Text文本信息
-		public void UpdateTextInfo(InlineText key, int id, List<SpriteTagInfo> value)
+		public void UpdateTextInfo(InlineText key, int id, List<SpriteTagInfo> value, bool visable)
 		{
 			Dictionary<InlineText, MeshInfo> textMeshInfo;
 			if (value == null)
@@ -118,7 +121,8 @@ namespace EmojiText.Taurus
 						meshInfo = Pool<MeshInfo>.Get();
 						textMeshInfo.Add(key, meshInfo);
 					}
-					meshInfo.Clear();
+					meshInfo.Reset();
+					meshInfo.visable = visable;
 					for (int i = 0; i < value.Count; i++)
 					{
 						for (int j = 0; j < value[i].Pos.Length; j++)
@@ -144,29 +148,53 @@ namespace EmojiText.Taurus
 	#region 模型数据信息
 	public class MeshInfo
 	{
-		public List<Vector3> Vertices = ListPool<Vector3>.Get();
-		public List<Vector2> UVs = ListPool<Vector2>.Get();
-		public List<Color> Colors = ListPool<Color>.Get();
-		public List<int> Triangles = ListPool<int>.Get();
+		public List<Vector3> Vertices = null;
+		public List<Vector2> UVs = null;
+		public List<Color> Colors = null;
+		public List<int> Triangles = null;
+		public bool visable = true;
+		public bool listsInitalized = false;
 
-		public void Clear()
+		public void Reset()
 		{
-			Vertices.Clear();
-			UVs.Clear();
-			Colors.Clear();
-			Triangles.Clear();
-		}
+			if (!listsInitalized)
+			{
+                Vertices = ListPool<Vector3>.Get();
+                UVs = ListPool<Vector2>.Get();
+                Colors = ListPool<Color>.Get();
+                Triangles = ListPool<int>.Get();
+
+				listsInitalized = true;
+            }
+
+			if (Vertices != null)
+            	Vertices.Clear();
+			if (UVs != null)
+                UVs.Clear();
+            if (Colors != null)
+                Colors.Clear();
+			if (Triangles != null)
+                Triangles.Clear();
+        }
 
 		public void Release()
 		{
-			ListPool<Vector3>.Release(Vertices);
-			ListPool<Vector2>.Release(UVs);
-			ListPool<Color>.Release(Colors);
-			ListPool<int>.Release(Triangles);
+			if (listsInitalized)
+			{
+                ListPool<Vector3>.Release(Vertices);
+                ListPool<Vector2>.Release(UVs);
+                ListPool<Color>.Release(Colors);
+                ListPool<int>.Release(Triangles);
+                Pool<MeshInfo>.Release(this);
 
-			Pool<MeshInfo>.Release(this);
+                Vertices = null;
+                UVs = null;
+                Colors = null;
+                Triangles = null;
+
+				listsInitalized = false;
+            }
 		}
-
 	}
 	#endregion
 }
